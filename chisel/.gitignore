@@ -1,0 +1,11 @@
+test_run_dir/
+target/
+project/target/
+lib_managed/
+src_managed/
+project/boot/
+.history
+.cache
+
+*.fir
+*.anno.json
