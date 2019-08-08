@@ -1,4 +1,6 @@
 *.pyc
+__pycache__
+build
 .ipynb_checkpoints/
 results.xml
 

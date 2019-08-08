@@ -1,0 +1,18 @@
+initial,
+"idle",
+
+"memory transaction" {
+  forward, forwardWait, reverse, reverseWait;
+
+  forward => forwardWait;
+  forwardWait => reverse;
+  reverse => reverseWait;
+},
+
+updatePot;
+
+idle            => "forward" : CMD_READ | CMD_WRITE;
+initial => idle;
+
+idle => updatePot : CMD_UPDATEPOT;
+"memory transaction" => idle;

@@ -25,7 +25,7 @@ class SpiSlaveIF(addr_width: Int = 7, data_width: Int = 8) extends Module {
     val RD = Output(Bool())
     val WRDATA = Output(UInt(data_width.W))
     val RDDATA = Input(UInt(data_width.W))
-    val ADDR = Output(UInt(addr_width.W))        
+    val ADDR = Output(UInt(addr_width.W))
   })
 
   val bitCounter = RegInit(0.U((addr_width+data_width).W))
@@ -73,12 +73,8 @@ class SpiSlaveIF(addr_width: Int = 7, data_width: Int = 8) extends Module {
     }
 
     when(fallingedge(io.SCLK)) {
-      // when(bitCounter < 8.U) { //(addr_width+1).asUInt) {
-      //   misoReg := false.B
-      // }.otherwise {
-        misoReg := outDataSR(data_width-1)
-        outDataSR := Cat(outDataSR(data_width-2, 0), false.B)
-      //}     
+      misoReg := outDataSR(data_width-1)
+      outDataSR := Cat(outDataSR(data_width-2, 0), false.B)
     }
   }
 
@@ -89,6 +85,4 @@ class SpiSlaveIF(addr_width: Int = 7, data_width: Int = 8) extends Module {
 
 object SpiSlaveIF extends App {
   chisel3.Driver.execute(args, () => new SpiSlaveIF)
-  // Alternate version if there are no args
-  // chisel3.Driver.execute(Array[String](), () => new HelloWorld)
 }

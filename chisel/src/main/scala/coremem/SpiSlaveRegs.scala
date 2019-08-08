@@ -8,24 +8,30 @@ import chisel3.util._
 This connects to the SpiSlaveIF module and provides simple outputs for the 
 controller state machine to use. 
 */
+class SpiControlBundle extends Bundle {
+  val SENSEDELAY = Output(UInt(8.W))
+  val VTHRESH = Output(UInt(16.W))
+  val DATA = Output(UInt(8.W))
+  val ADDR = Output(UInt(8.W))
+  val CMD_WRITE = Output(Bool())
+  val CMD_READ = Output(Bool())
+  val CMD_UPDATEPOT = Output(Bool())
+  val CMD_READ_ACK = Input(Bool())
+  val DATAIN = Input(UInt(8.W))
+}
+
 class SpiSlaveRegs() extends Module {
     
   val io = IO(new Bundle {
     // Signals from SpiSlaveIF
-    val WR = Input(Bool())
-    val RD = Input(Bool())
-    val WRDATA = Input(UInt(8.W))
-    val RDDATA = Output(UInt(8.W))
-    val ADDR = Input(UInt(7.W))
+    val SPI_WR = Input(Bool())
+    val SPI_RD = Input(Bool())
+    val SPI_WRDATA = Input(UInt(8.W))
+    val SPI_RDDATA = Output(UInt(8.W))
+    val SPI_ADDR = Input(UInt(7.W))
 
     // Outputs
-    val SENSEDELAY = Output(UInt(8.W))
-    val VTHRESH = Output(UInt(16.W))
-    val CMD_DATA = Output(UInt(8.W))
-    val CMD_ADDR = Output(UInt(8.W))
-    val CMD_WRITE = Output(Bool())
-    val CMD_READ = Output(Bool())
-    val CMD_UPDATEPOT = Output(Bool())
+    val ctrl = new SpiControlBundle()
   })
 
   val SenseDelayAddr = 0.U
@@ -43,65 +49,70 @@ class SpiSlaveRegs() extends Module {
   val DATA_reg = RegInit(0.U(8.W))
   val ADDR_reg = RegInit(0.U(8.W))
 
-  io.VTHRESH := VTHRESH_reg
-  io.SENSEDELAY := SENSEDELAY_reg
-  io.CMD_DATA := DATA_reg
-  io.CMD_ADDR := ADDR_reg
-  io.CMD_WRITE := false.B
-  io.CMD_READ := false.B
-  io.CMD_UPDATEPOT := false.B
+  io.ctrl.VTHRESH := VTHRESH_reg
+  io.ctrl.SENSEDELAY := SENSEDELAY_reg
+  io.ctrl.DATA := DATA_reg
+  io.ctrl.ADDR := ADDR_reg
+  io.ctrl.CMD_WRITE := false.B
+  io.ctrl.CMD_READ := false.B
+  io.ctrl.CMD_UPDATEPOT := false.B
 
   // Read process
-  when(io.ADDR === SenseDelayAddr) {
-    when(io.WR) {
-      SENSEDELAY_reg := io.WRDATA
+  when(io.SPI_ADDR === SenseDelayAddr) {
+    when(io.SPI_WR) {
+      SENSEDELAY_reg := io.SPI_WRDATA
     }
-    io.RDDATA := SENSEDELAY_reg
-  }.elsewhen(io.ADDR === VThreshHAddr) {
-    when(io.WR) {
-      VTHRESH_reg := Cat(io.WRDATA, VTHRESH_reg(7, 0))
+    io.SPI_RDDATA := SENSEDELAY_reg
+  }.elsewhen(io.SPI_ADDR === VThreshHAddr) {
+    when(io.SPI_WR) {
+      VTHRESH_reg := Cat(io.SPI_WRDATA, VTHRESH_reg(7, 0))
     }
-    io.RDDATA := VTHRESH_reg(15, 8)
-  }.elsewhen(io.ADDR === VThreshLAddr) {
-    when(io.WR) {
-      VTHRESH_reg := Cat(VTHRESH_reg(15, 8), io.WRDATA)
+    io.SPI_RDDATA := VTHRESH_reg(15, 8)
+  }.elsewhen(io.SPI_ADDR === VThreshLAddr) {
+    when(io.SPI_WR) {
+      VTHRESH_reg := Cat(VTHRESH_reg(15, 8), io.SPI_WRDATA)
     }
-    io.RDDATA := VTHRESH_reg(7, 0)
-  }.elsewhen(io.ADDR === VDriveHAddr) {
-    when(io.WR) {
-      VDRIVE_reg := Cat(io.WRDATA, VDRIVE_reg(7, 0))
+    io.SPI_RDDATA := VTHRESH_reg(7, 0)
+  }.elsewhen(io.SPI_ADDR === VDriveHAddr) {
+    when(io.SPI_WR) {
+      VDRIVE_reg := Cat(io.SPI_WRDATA, VDRIVE_reg(7, 0))
     }
-    io.RDDATA := VDRIVE_reg(15, 8)
-  }.elsewhen(io.ADDR === VDriveLAddr) {
-    when(io.WR) {
-      VDRIVE_reg := Cat(VDRIVE_reg(15, 8), io.WRDATA)
+    io.SPI_RDDATA := VDRIVE_reg(15, 8)
+  }.elsewhen(io.SPI_ADDR === VDriveLAddr) {
+    when(io.SPI_WR) {
+      VDRIVE_reg := Cat(VDRIVE_reg(15, 8), io.SPI_WRDATA)
     }
-    io.RDDATA := VDRIVE_reg(7, 0)
-  }.elsewhen(io.ADDR === DataAddr) {
-    when(io.WR) {
-      DATA_reg := io.WRDATA
+    io.SPI_RDDATA := VDRIVE_reg(7, 0)
+  }.elsewhen(io.SPI_ADDR === DataAddr) {
+    when(io.SPI_WR) {
+      DATA_reg := io.SPI_WRDATA
     }
-    io.RDDATA := DATA_reg
-  }.elsewhen(io.ADDR === AddrAddr) {
-    when(io.WR) {
-      ADDR_reg := io.WRDATA
+    io.SPI_RDDATA := DATA_reg
+  }.elsewhen(io.SPI_ADDR === AddrAddr) {
+    when(io.SPI_WR) {
+      ADDR_reg := io.SPI_WRDATA
     }
-    io.RDDATA := ADDR_reg
-  }.elsewhen(io.ADDR === CtrlAddr) {
-    when(io.WR) {
-      when(io.WRDATA(0)) {
-        io.CMD_WRITE := true.B
-      }.elsewhen(io.WRDATA(1)) {
-        io.CMD_READ := true.B
-      }.elsewhen(io.WRDATA(2)) {
-        io.CMD_UPDATEPOT := true.B
+    io.SPI_RDDATA := ADDR_reg
+  }.elsewhen(io.SPI_ADDR === CtrlAddr) {
+    when(io.SPI_WR) {
+      when(io.SPI_WRDATA(0)) {
+        io.ctrl.CMD_WRITE := true.B
+      }.elsewhen(io.SPI_WRDATA(1)) {
+        io.ctrl.CMD_READ := true.B
+      }.elsewhen(io.SPI_WRDATA(2)) {
+        io.ctrl.CMD_UPDATEPOT := true.B
       }
     }
-    io.RDDATA := 0.U
+    io.SPI_RDDATA := 0.U
   }.otherwise {
-    io.RDDATA := 0xFF.U
+    io.SPI_RDDATA := 0xFF.U
   }
 
+  // The data register can be updated by SPI write, or by the hardware
+  // (whenever a read is performed, the read value is stored here)
+  when(io.ctrl.CMD_READ_ACK) {
+    DATA_reg := io.ctrl.DATAIN;
+  }
 }
 
 object SpiSlaveRegs extends App {
