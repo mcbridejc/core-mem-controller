@@ -1,0 +1,6 @@
+*.pyc
+.ipynb_checkpoints/
+results.xml
+
+*.vcd
+verilog/
