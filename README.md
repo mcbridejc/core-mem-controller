@@ -55,6 +55,12 @@ First, the verilog ``timescale` directive, and a VCD dump initial block needs to
 
 Then, simply run `make` to execute the cocotb test suite. 
 
+## Building bitstream for ice40
+
+Building the bitstream uses Yosys, nextpnr, and icestorm. Instructions for installing these can be found at http://www.clifford.at/icestorm/
+
+From the 'bitstream' directory, you can run `make` to build the .bin file for programming. 
+
 # Documentation
 
 ## State Diagrams
