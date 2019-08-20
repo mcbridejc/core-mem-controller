@@ -13,7 +13,7 @@ WR is asserted.
 
 clock input is assumed to be sufficiently faster than SLCK (what is sufficient? TBD)
 */
-class SpiSlaveIF(addr_width: Int = 7, data_width: Int = 8) extends Module {
+class SpiSlaveIF(addr_width: Int = 7, data_width: Int = 8, CPOL: Boolean = false, CPHA: Boolean = false) extends Module {
     
   val io = IO(new Bundle {
     val CSn = Input(Bool())
@@ -37,14 +37,59 @@ class SpiSlaveIF(addr_width: Int = 7, data_width: Int = 8) extends Module {
   val rdReg = RegInit(false.B)
   val misoReg = RegInit(false.B)
 
+  val sclk = Wire(Bool())
+
+  if(CPOL) {
+    sclk := ~io.SCLK;
+  } else {
+    sclk := io.SCLK;
+  }
+
   def risingedge(x: Bool) = x && !RegNext(x)
   def fallingedge(x: Bool) = !x && RegNext(x)
+
+  def latchInput() {
+    // Read the current bit into the appropriate register
+    when(bitCounter === 0.U) {
+      rwSel := io.MOSI
+    }.elsewhen(bitCounter < (addr_width + 1).asUInt) {
+      addrSR := Cat(addrSR(addr_width-2, 0), io.MOSI)
+    }.elsewhen(bitCounter < (addr_width + 1 + data_width).asUInt) {
+      dataSR := Cat(dataSR(data_width-2, 0), io.MOSI)
+    }
+
+    // Generate read/write strobe to output IF at appropriate time
+    when(rwSel && bitCounter === addr_width.U + data_width.U) {
+      // write op
+      wrReg := true.B
+    }
+    when(!rwSel && bitCounter === addr_width.U) {
+      rdReg := true.B
+    }
+
+    bitCounter := bitCounter + 1.U
+  }
+
+  def advanceOutput() {
+    outDataSR := Cat(outDataSR(data_width-2, 0), false.B)
+  }
 
   io.WR := wrReg
   io.RD := rdReg
   io.WRDATA := dataSR
   io.ADDR := addrSR
-  io.MISO := misoReg
+
+  val latchCondition = Wire(Bool())
+  val outputCondition = Wire(Bool())
+  if(CPHA) {
+    io.MISO := RegEnable(outDataSR(data_width-1), risingedge(sclk))
+    latchCondition := fallingedge(sclk)
+    outputCondition := risingedge(sclk)
+  } else {
+    io.MISO := RegEnable(outDataSR(data_width-1), fallingedge(sclk))
+    latchCondition := risingedge(sclk)
+    outputCondition := fallingedge(sclk)
+  }
 
   when(io.CSn) {
     bitCounter := 0.U
@@ -53,28 +98,13 @@ class SpiSlaveIF(addr_width: Int = 7, data_width: Int = 8) extends Module {
   }.otherwise {
     wrReg := false.B
     rdReg := false.B
-    when(risingedge(io.SCLK)) {
-      when(bitCounter === 0.U) {
-        rwSel := io.MOSI
-      }.elsewhen(bitCounter < (addr_width + 1).asUInt) {
-        addrSR := Cat(addrSR(addr_width-2, 0), io.MOSI)
-      }.elsewhen(bitCounter < (addr_width + 1 + data_width).asUInt) {
-        dataSR := Cat(dataSR(data_width-2, 0), io.MOSI)
-      }
 
-      when(rwSel && bitCounter === addr_width.U + data_width.U) {
-        // write op
-        wrReg := true.B
-      }
-      when(!rwSel && bitCounter === addr_width.U) {
-        rdReg := true.B
-      }
-      bitCounter := bitCounter + 1.U
+    when(latchCondition) {
+      latchInput()
     }
 
-    when(fallingedge(io.SCLK)) {
-      misoReg := outDataSR(data_width-1)
-      outDataSR := Cat(outDataSR(data_width-2, 0), false.B)
+    when(outputCondition) {
+      advanceOutput()
     }
   }
 

@@ -39,7 +39,9 @@ class CoreMem extends Module {
 
     // Create SPI slave interface submodules and connect it to the top-level SPI pins
     // Inputs are registered twice to avoid metastabillity
-    val spi_if = Module(new SpiSlaveIF(7, 8))
+    val CPOL = false
+    val CPHA = false
+    val spi_if = Module(new SpiSlaveIF(7, 8, CPOL, CPHA))
     val spi_regs = Module(new SpiSlaveRegs)
     val drive_fsm = Module(new DriveFSM())
     spi_if.io.SCLK := RegNext(RegNext(io.SCLK))
