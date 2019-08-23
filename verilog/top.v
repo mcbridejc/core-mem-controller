@@ -31,7 +31,9 @@ module top (
     output wire Y2_EN_F,
     output wire Y2_EN_R,
     output wire Y3_EN_F,
-    output wire Y3_EN_R
+    output wire Y3_EN_R,
+    
+    output wire [3:0] LED
 );
 
 wire clk;
@@ -71,6 +73,7 @@ CoreMem coremem (
     .io_SCLK(SCLK),
     .io_CSn(CSn),
     .io_MISO(MISO),
+    .io_MOSI(MOSI),
     
     .io_POT_SCLK(POT_SCLK),
     .io_POT_CSn(POT_CSn),
@@ -82,6 +85,15 @@ CoreMem coremem (
     .io_drive_XDRIVE(XDRIVE),
     .io_drive_YDRIVE(YDRIVE)
 );
+
+reg [24:0] counter;
+reg toggle;
+always @(posedge clk)
+begin
+    counter <= counter + 1;
+    if(counter == 0)
+        toggle <= ~toggle;
+end
 
 assign X0_EN_F = !DIR & XDRIVE[0];
 assign X0_EN_R =  DIR & XDRIVE[0];
@@ -95,5 +107,10 @@ assign Y2_EN_F = !DIR & YDRIVE[2];
 assign Y2_EN_R =  DIR & YDRIVE[2];
 assign Y3_EN_F = !DIR & YDRIVE[3];
 assign Y3_EN_R =  DIR & YDRIVE[3];
+
+assign LED[0] = toggle;
+assign LED[1] = CLKIN;
+assign LED[2] = 1;
+assign LED[3] = clk;
 
 endmodule
