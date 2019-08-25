@@ -1,8 +1,10 @@
 import cocotb
-from cocotb.triggers import Timer, FallingEdge, Edge, Combine
+from cocotb.log import SimLog
+from cocotb.triggers import Timer, RisingEdge, FallingEdge, Edge, Combine, ReadOnly, First
 from cocotb.result import TestFailure
 from cocotb.utils import get_sim_time
 from cocotb.monitors import Monitor
+from cocotb.scoreboard import Scoreboard
 import numpy as np
 import random
 
@@ -24,6 +26,51 @@ def one_hot_to_index(one_hot):
     for i in range(32):
         if one_hot & (1<<i):
             return i
+
+class SpiMonitor(Monitor):
+    """Watches SPI bus for 16-bit word write events
+    """
+    def __init__(self, name, sclk, csn, mosi, callback=None, event=None):
+        self.name = name
+        self.sclk = sclk
+        self.csn = csn
+        self.mosi = mosi
+        self.log = SimLog("SpiMonitor")
+        self.bits = 16
+        self.data = 0
+        Monitor.__init__(self, callback, event)
+
+    @cocotb.coroutine
+    def _monitor_recv(self):
+        clk_edge = RisingEdge(self.sclk)
+        cs_rise = RisingEdge(self.csn) 
+        while True:
+            yield FallingEdge(self.csn)
+            yield ReadOnly()
+            self.bits = 16
+            self.data = 0
+            while True:
+                edge = yield First(clk_edge, cs_rise)
+                yield ReadOnly()
+
+                if edge == clk_edge:
+                    if self.bits == 0:
+                        self.log.error("Too many clocks received")
+                        break
+                    
+                    self.bits -= 1
+                
+                    if self.mosi.value:
+                        self.data += (1<<self.bits)
+
+                elif edge == cs_rise:
+                    if self.bits > 0:
+                        self.log.error("Not enough clocks received")
+                    else:
+                        self._recv(self.data)
+                    break
+                
+
 
 class SignalMonitor(Monitor):
     """Observes a single-bit input or output of DUT."""
@@ -147,7 +194,7 @@ def mem_read(dut, addr):
     readVal = yield spi_read(dut, RegAddr.DATA)
     return readVal
 
-@cocotb.test()
+#@cocotb.test()
 def CoreMem_read_write_transaction(dut):
     
     # init IOs
@@ -176,6 +223,8 @@ def CoreMem_read_write_transaction(dut):
 
 
     write_pairs = [
+        [1, 0xf9],
+        [2, 0xff],
         [3, 0x49],
         [0, 0x9f],
         [7, 0x64],
@@ -206,3 +255,41 @@ def CoreMem_read_write_transaction(dut):
     
     yield Timer(200, 'ns')
     
+
+@cocotb.test()
+def CoreMem_pot_update(dut):
+    # init IOs
+    dut.io_SCLK = 1
+    dut.io_CSn = 1
+    dut.io_MOSI = 1
+    dut.reset = 1
+
+    # Start the main device clock
+    print("Main clock period: " + str(MAIN_CLK_PERIOD_PS))
+    clock = cocotb.clock.Clock(dut.clock, MAIN_CLK_PERIOD_PS, 'ps')
+    cocotb.fork(clock.start())
+
+    yield Timer(20, 'ns')
+    dut.reset = 0
+
+    yield Timer(200, 'ns')
+
+    def spiword(cmd, channel, data):
+        return (cmd << 12) + (channel << 8) + data
+
+    # Create a scoreboard for the expected SPI transactions
+    monitor = SpiMonitor("SPI", dut.io_POT_SCLK, dut.io_POT_CSn, dut.io_POT_MOSI)
+    scoreboard = Scoreboard(dut)
+    expected_values = [
+        spiword(1, 1, 0xa1),
+        spiword(1, 2, 0x9f)
+    ]
+    scoreboard.add_interface(monitor, expected_values)
+
+    yield spi_write(dut, RegAddr.VDRIVE, 0xa1)
+    yield spi_write(dut, RegAddr.VTHRESH, 0x9f)
+    yield spi_write(dut, RegAddr.CTRL, (1<<2)) # Start pot update
+
+    yield Timer(500, 'us')
+
+    raise scoreboard.result

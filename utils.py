@@ -9,6 +9,8 @@ SPI_SCLK_PERIOD_PS = int(1e12 / SPI_SCLK_FREQ)
 class RegAddr(object):
     SENSEDELAY = 0
     CTRL = 1
+    VTHRESH = 2
+    VDRIVE = 4
     DATA = 6
     ADDR = 7
 

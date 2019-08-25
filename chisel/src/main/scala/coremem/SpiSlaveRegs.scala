@@ -10,7 +10,8 @@ controller state machine to use.
 */
 class SpiControlBundle extends Bundle {
   val SENSEDELAY = Output(UInt(8.W))
-  val VTHRESH = Output(UInt(16.W))
+  val VTHRESH = Output(UInt(8.W))
+  val VDRIVE = Output(UInt(8.W))
   val DATA = Output(UInt(8.W))
   val ADDR = Output(UInt(8.W))
   val CMD_WRITE = Output(Bool())
@@ -36,20 +37,19 @@ class SpiSlaveRegs() extends Module {
 
   val SenseDelayAddr = 0.U
   val CtrlAddr = 1.U
-  val VThreshHAddr = 2.U
-  val VThreshLAddr = 3.U
-  val VDriveHAddr = 4.U
-  val VDriveLAddr = 5.U
+  val VThreshAddr = 2.U
+  val VDriveAddr = 4.U
   val DataAddr = 6.U
   val AddrAddr = 7.U
 
   val SENSEDELAY_reg = RegInit(0xaa.U(8.W))
-  val VTHRESH_reg = RegInit(0.U(16.W))
-  val VDRIVE_reg = RegInit(0.U(16.W))
+  val VTHRESH_reg = RegInit(0.U(8.W))
+  val VDRIVE_reg = RegInit(0.U(8.W))
   val DATA_reg = RegInit(0.U(8.W))
   val ADDR_reg = RegInit(0.U(8.W))
 
   io.ctrl.VTHRESH := VTHRESH_reg
+  io.ctrl.VDRIVE := VDRIVE_reg
   io.ctrl.SENSEDELAY := SENSEDELAY_reg
   io.ctrl.DATA := DATA_reg
   io.ctrl.ADDR := ADDR_reg
@@ -63,26 +63,16 @@ class SpiSlaveRegs() extends Module {
       SENSEDELAY_reg := io.SPI_WRDATA
     }
     io.SPI_RDDATA := SENSEDELAY_reg
-  }.elsewhen(io.SPI_ADDR === VThreshHAddr) {
+  }.elsewhen(io.SPI_ADDR === VThreshAddr) {
     when(io.SPI_WR) {
-      VTHRESH_reg := Cat(io.SPI_WRDATA, VTHRESH_reg(7, 0))
+      VTHRESH_reg := io.SPI_WRDATA
     }
-    io.SPI_RDDATA := VTHRESH_reg(15, 8)
-  }.elsewhen(io.SPI_ADDR === VThreshLAddr) {
+    io.SPI_RDDATA := VTHRESH_reg
+  }.elsewhen(io.SPI_ADDR === VDriveAddr) {
     when(io.SPI_WR) {
-      VTHRESH_reg := Cat(VTHRESH_reg(15, 8), io.SPI_WRDATA)
+      VDRIVE_reg := io.SPI_WRDATA
     }
-    io.SPI_RDDATA := VTHRESH_reg(7, 0)
-  }.elsewhen(io.SPI_ADDR === VDriveHAddr) {
-    when(io.SPI_WR) {
-      VDRIVE_reg := Cat(io.SPI_WRDATA, VDRIVE_reg(7, 0))
-    }
-    io.SPI_RDDATA := VDRIVE_reg(15, 8)
-  }.elsewhen(io.SPI_ADDR === VDriveLAddr) {
-    when(io.SPI_WR) {
-      VDRIVE_reg := Cat(VDRIVE_reg(15, 8), io.SPI_WRDATA)
-    }
-    io.SPI_RDDATA := VDRIVE_reg(7, 0)
+    io.SPI_RDDATA := VDRIVE_reg
   }.elsewhen(io.SPI_ADDR === DataAddr) {
     when(io.SPI_WR) {
       DATA_reg := io.SPI_WRDATA

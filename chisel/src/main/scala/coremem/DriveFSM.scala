@@ -13,6 +13,10 @@ class DriveFSM extends Module {
     // Core driver signals
     val drive = new DriveControlBundle
 
+    // Potentiometer update signals
+    val potStartUpdate = Output(Bool())
+    val potAckUpdate = Input(Bool())
+
     val busy = Output(Bool())
   })
 
@@ -30,7 +34,7 @@ class DriveFSM extends Module {
   val state = RegInit(sIdle)
   val cmdIsRead = RegInit(false.B)
   val pulseComplete = Wire(Bool())
-  val updateComplete = RegInit(true.B)
+  val updateComplete = Wire(Bool())
   val dir = RegInit(false.B)
   val forwardReadValue = RegInit(0.U(8.W))
 
@@ -110,6 +114,9 @@ class DriveFSM extends Module {
     io.drive.XDRIVE := 0.U
     io.drive.YDRIVE := 0.U
   }
+
+  io.potStartUpdate := (state === sUpdatePot)
+  updateComplete := io.potAckUpdate
 
   // Provide read data storage back to SPI control regs
   io.ctrl.DATAIN := forwardReadValue
