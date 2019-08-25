@@ -86,7 +86,7 @@ CoreMem coremem (
     .io_drive_YDRIVE(YDRIVE)
 );
 
-reg [24:0] counter;
+reg [23:0] counter;
 reg toggle;
 always @(posedge clk)
 begin
