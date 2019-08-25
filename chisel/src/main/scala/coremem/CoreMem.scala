@@ -23,6 +23,7 @@ class CoreMem extends Module {
         val POT_SCLK = Output(Bool())
         val POT_CSn = Output(Bool())
         val POT_MOSI = Output(Bool())
+        val POT_SHDN = Output(Bool())
 
         // Core driver signals
         val drive = new DriveControlBundle
@@ -51,6 +52,7 @@ class CoreMem extends Module {
     io.POT_SCLK := mcp42.io.sclk
     io.POT_CSn := mcp42.io.csn
     io.POT_MOSI := mcp42.io.mosi
+    io.POT_SHDN := true.B
 
     spi_if.io.SCLK := RegNext(RegNext(io.SCLK))
     spi_if.io.CSn := RegNext(RegNext(io.CSn))

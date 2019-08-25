@@ -7,6 +7,7 @@ set_io MOSI 142
 set_io POT_SCLK 119
 set_io POT_CSn 120
 set_io POT_MOSI 118
+set_io POT_SHDN 121
 
 set_io SENSE[0] 79
 set_io SENSE[1] 80
