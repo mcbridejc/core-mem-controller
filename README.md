@@ -15,7 +15,7 @@ MOSI - | R/W | ADDR[6:0] | DATA[7:0] |
 MISO - | DontCare[7:0]   | READDATA[7:0] |
 ```
 
-The first byte written by the master indicates the type of transaction being performed. If the first bit is 0, then a read is performed. If it is 1, then a write is being performed. The following 7 bits specify the register address being read/written. For a write, the second byte contains the data to be written; in the case of a read this byte is ignored. 
+The first bit written by the master indicates the type of transaction being performed. If the first bit is 0, then a read is performed. If it is 1, then a write is being performed. The following 7 bits specify the register address being read/written. For a write, the second byte contains the data to be written; in the case of a read this byte is ignored. 
 The slave always writes zeroes for the first byte. During a read, the read value will be returned in the second byte; for a write the second byte will also be all zeros.
 
 During memory access, the slave will hold the CS line low as a busy signal to the master. This will only occur after the START register is written, and should be used by the master as an indication of when the transaction result is completed.
