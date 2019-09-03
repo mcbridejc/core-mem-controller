@@ -1,4 +1,4 @@
-set_io CLKIN 4
+set_io CLKIN 128
 set_io SCLK 129
 set_io CSn 143
 set_io MISO 141

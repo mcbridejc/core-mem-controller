@@ -52,11 +52,12 @@ always @(posedge clk) begin
         resetn_counter <= resetn_counter + 1;
 end
 
+// 12Mhz->19.875
 SB_PLL40_CORE #(
     .FEEDBACK_PATH("SIMPLE"),
     .PLLOUT_SELECT("GENCLK"),
     .DIVR(4'b0000),
-    .DIVF(7'd63),
+    .DIVF(7'd52),
     .DIVQ(3'd5),
     .FILTER_RANGE(3'b001)
 ) uut (
