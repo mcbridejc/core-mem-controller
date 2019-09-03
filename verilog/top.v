@@ -15,6 +15,7 @@ module top (
     output wire POT_SCLK,
     output wire POT_CSn,
     output wire POT_MOSI,
+    output wire POT_SHDN,
     
     // Core driver circuit interface
     input wire [7:0] SENSE,
@@ -78,6 +79,7 @@ CoreMem coremem (
     .io_POT_SCLK(POT_SCLK),
     .io_POT_CSn(POT_CSn),
     .io_POT_MOSI(POT_MOSI),
+    .io_POT_SHDN(POT_SHDN),
     
     .io_drive_SENSE(SENSE),
     .io_drive_DIR(DIR),
